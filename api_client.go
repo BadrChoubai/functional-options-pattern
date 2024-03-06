@@ -46,13 +46,9 @@ func NewClient(url string, opts ...Option) (*ApiClient, error) {
 		apiUrl:     url,
 		httpClient: &http.Client{},
 	}
-	options := options{
-		allowedScopes: nil,
-		apiVersions:   nil,
-	}
 
 	for _, o := range opts {
-		o.apply(&options)
+		o.apply(&client.options)
 	}
 
 	return client, nil
@@ -61,6 +57,7 @@ func NewClient(url string, opts ...Option) (*ApiClient, error) {
 type ApiClient struct {
 	apiUrl     string
 	httpClient *http.Client
+	options    options
 }
 
 // CallHealthcheck performs a health check on the specified URL using a GET request.
@@ -89,6 +86,19 @@ func CheckHealth(clients ...*ApiClient) {
 	}
 }
 
+func (c *ApiClient) GetEnabledApiVersions() []string {
+	return c.options.apiVersions
+}
+
+func (c *ApiClient) GetAllowedScopes() []string {
+	return c.options.allowedScopes
+}
+
+func (c *ApiClient) String() string {
+	return fmt.Sprintf("ApiClient{apiUrl: %s, allowedScopes: %v, apiVersions: %v}",
+		c.apiUrl, c.options.allowedScopes, c.options.apiVersions)
+}
+
 func main() {
 	serviceOneClient, err := NewClient(
 		os.Getenv("SERVICE_ONE_BASE_URL"),
@@ -99,6 +109,8 @@ func main() {
 		fmt.Print("failed to create client: serviceOneClient")
 	}
 
+	fmt.Println(serviceOneClient.String())
+
 	serviceTwoClient, err := NewClient(
 		os.Getenv("SERVICE_TWO_BASE_URL"),
 		WithApiVersions([]string{"2021-02-01"}),
@@ -108,6 +120,8 @@ func main() {
 		fmt.Print("failed to create client: serviceTwoClient")
 	}
 
+	fmt.Println(serviceTwoClient.String())
+
 	serviceThreeClient, err := NewClient(
 		os.Getenv("SERVICE_THREE_BASE_URL"),
 		WithApiVersions([]string{"2021-02-01"}),
@@ -116,6 +130,8 @@ func main() {
 	if err != nil {
 		fmt.Print("failed to create client: serviceThreeClient")
 	}
+
+	fmt.Println(serviceThreeClient.String())
 
 	CheckHealth(
 		serviceOneClient,
