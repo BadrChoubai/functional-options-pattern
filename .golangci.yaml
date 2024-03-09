@@ -1,0 +1,10 @@
+linters:
+  enable:
+    - bodyclose
+    - errcheck
+    - goimports
+    - gosec
+    - staticcheck
+    - unparam
+    - unused
+    - vet

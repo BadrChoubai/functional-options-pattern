@@ -1,12 +1,13 @@
 package client
 
 import (
-	"github.com/badrchoubai/functional-options-example/internal/pkg/service"
 	"log"
+
+	"github.com/badrchoubai/functional-options-example/internal/pkg/service"
 )
 
 type Option interface {
-	apply(*ApiClient)
+	apply(*APIClient)
 }
 
 // Create types for your different options
@@ -25,17 +26,17 @@ type (
 )
 
 // apply errorLogOption
-func (el errorLogOption) apply(client *ApiClient) {
+func (el errorLogOption) apply(client *APIClient) {
 	client.ErrorLog = el.Log
 }
 
 // apply errorLogOption
-func (il infoLogOption) apply(client *ApiClient) {
+func (il infoLogOption) apply(client *APIClient) {
 	client.InfoLog = il.Log
 }
 
 // apply errorLogOption
-func (sc serviceConnectionOption) apply(client *ApiClient) {
+func (sc serviceConnectionOption) apply(client *APIClient) {
 	client.Service = sc.Service
 }
 
