@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/badrchoubai/functional-options-example/internal/pkg/client"
+	"github.com/badrchoubai/functional-options-example/internal/pkg/service"
 	"log"
 	"os"
 )
@@ -18,18 +20,18 @@ func main() {
 
 	// This example code uses the Uber API:
 	// https://developer.uber.com/docs/riders/ride-requests/tutorials/api/introduction
-	uber := Service{
-		baseURL:        os.Getenv("UBER_API_URL"),
-		clientId:       os.Getenv("UBER_API_CLIENT_ID"),
-		clientSecret:   os.Getenv("UBER_API_CLIENT_SECRET"),
-		healthcheckURL: os.Getenv("UBER_API_HEALTHCHECK_URL"),
+	uber := &service.Service{
+		BaseURL:        os.Getenv("UBER_API_URL"),
+		ClientId:       os.Getenv("UBER_API_CLIENT_ID"),
+		ClientSecret:   os.Getenv("UBER_API_CLIENT_SECRET"),
+		HealthcheckURL: os.Getenv("UBER_API_HEALTHCHECK_URL"),
 	}
 
-	UberClient := New(
-		&uber,
-		WithErrorLogOption(app.errorLog),
-		WithInfoLogOption(app.infoLog),
+	UberClient := client.New(
+		uber,
+		client.WithErrorLogOption(app.errorLog),
+		client.WithInfoLogOption(app.infoLog),
 	)
 
-	CallHealthcheck(UberClient)
+	client.CheckHealth(UberClient)
 }
