@@ -4,29 +4,55 @@ import (
 	"github.com/badrchoubai/functional-options-example/internal/pkg/service"
 	"log"
 	"net/http"
+	"os"
 )
 
-// ApiClient struct encapsulates logic for interacting with configured API
+// ApiClient struct encapsulates logic for interacting with configured API provided by
+// service.Service
 type ApiClient struct {
-	errorLog *log.Logger
-	infoLog  *log.Logger
+	Service  *service.Service
+	ErrorLog *log.Logger
+	InfoLog  *log.Logger
 
 	*http.Client
-	service *service.Service
 }
 
-func New(service *service.Service, opts ...Option) *ApiClient {
+// CheckHealth calls doHealthcheck and acts off the result to log whether the endpoint
+// returned a 200 OK status.
+func CheckHealth(client *ApiClient) {
+	healthy, err := client.doHealthcheck()
+	if err != nil {
+		client.ErrorLog.Printf("Error: %v", err.Error())
+		return
+	}
+
+	if healthy {
+		client.InfoLog.Printf("%s is healthy.", client.Service.BaseURL)
+	} else {
+		client.InfoLog.Printf("%s is not healthy.", client.Service.BaseURL)
+	}
+}
+
+func New(opts ...Option) *ApiClient {
+	if opts == nil {
+		return NewNop()
+	}
+
 	client := &ApiClient{
-		service: service,
-		Client:  &http.Client{},
+		Client:   &http.Client{},
+		ErrorLog: log.New(os.Stderr, "ERROR: \t", log.LstdFlags),
+		InfoLog:  log.New(os.Stdout, "INFO: \t", log.LstdFlags),
 	}
 
 	return client.WithOptions(opts...)
 }
 
-func (c *ApiClient) clone() *ApiClient {
-	clone := &c
-	return *clone
+func NewNop() *ApiClient {
+	return &ApiClient{
+		Client:   &http.Client{},
+		ErrorLog: log.New(os.Stderr, "ERROR: \t", log.LstdFlags),
+		InfoLog:  log.New(os.Stdout, "INFO: \t", log.LstdFlags),
+	}
 }
 
 func (c *ApiClient) WithOptions(opts ...Option) *ApiClient {
@@ -39,8 +65,13 @@ func (c *ApiClient) WithOptions(opts ...Option) *ApiClient {
 	return client
 }
 
+func (c *ApiClient) clone() *ApiClient {
+	clone := &c
+	return *clone
+}
+
 func (c *ApiClient) doHealthcheck() (bool, error) {
-	result, err := c.Get(c.service.HealthcheckURL)
+	result, err := c.Get(c.Service.HealthcheckURL)
 	if err != nil {
 		return false, err
 	}
@@ -48,23 +79,14 @@ func (c *ApiClient) doHealthcheck() (bool, error) {
 	return result.StatusCode == http.StatusOK, nil
 }
 
-// CheckHealth calls doHealthcheck and acts off the result to log whether the endpoint
-// returned a 200 OK status.
-func CheckHealth(client *ApiClient) {
-	if client.service.HealthcheckURL == "" {
-		client.errorLog.Print("client has no healthcheck endpoint configured")
-		return
-	}
+// Get implemented to introduce logging inside of function call
+func (c *ApiClient) Get(url string) (resp *http.Response, err error) {
+	c.InfoLog.Printf("GET::%s", url)
 
-	healthy, err := client.doHealthcheck()
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		client.errorLog.Printf("\nError: %v", err.Error())
-		return
+		return nil, err
 	}
 
-	if healthy {
-		client.infoLog.Printf("%s is healthy.", client.service.BaseURL)
-	} else {
-		client.infoLog.Printf("%s is not healthy.", client.service.BaseURL)
-	}
+	return c.Do(req)
 }
