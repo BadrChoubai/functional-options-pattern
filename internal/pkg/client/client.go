@@ -63,9 +63,8 @@ func CheckHealth(client *ApiClient) {
 	}
 
 	if healthy {
-		client.infoLog.Printf("%s is healthy.", client.service.HealthcheckURL)
+		client.infoLog.Printf("%s is healthy.", client.service.BaseURL)
 	} else {
-		client.infoLog.Printf("%s is not healthy.", client.service.HealthcheckURL)
+		client.infoLog.Printf("%s is not healthy.", client.service.BaseURL)
 	}
-
 }
