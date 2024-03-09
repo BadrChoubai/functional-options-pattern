@@ -1,10 +1,20 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 )
+
+// ApiClient struct encapsulates logic for interacting with configured API
+type ApiClient struct {
+	*Service
+	baseURL        string
+	healthcheckURL string
+	errorLog       *log.Logger
+	infoLog        *log.Logger
+
+	*http.Client
+}
 
 type Option interface {
 	apply(*ApiClient)
@@ -12,19 +22,13 @@ type Option interface {
 
 // Create types for your different options
 type (
-	healthcheckURLOption string
-	errorLogOption       loggerOption
-	infoLogOption        loggerOption
+	errorLogOption loggerOption
+	infoLogOption  loggerOption
 
 	loggerOption struct {
 		Log *log.Logger
 	}
 )
-
-// apply healthcheckOption
-func (hc healthcheckURLOption) apply(client *ApiClient) {
-	client.healthcheckURL = string(hc)
-}
 
 // apply errorLogOption
 func (el errorLogOption) apply(client *ApiClient) {
@@ -36,17 +40,26 @@ func (il infoLogOption) apply(client *ApiClient) {
 	client.infoLog = il.Log
 }
 
-type ApiClient struct {
-	healthcheckURL string
-	httpClient     *http.Client
+func New(service *Service, opts ...Option) *ApiClient {
+	client := &ApiClient{
+		Service:        service,
+		baseURL:        service.baseURL,
+		healthcheckURL: service.healthcheckURL,
 
-	errorLog *log.Logger
-	infoLog  *log.Logger
+		Client: &http.Client{},
+	}
+
+	return client.WithOptions(opts...)
 }
 
-// WithHealthcheckURLOption implements Option
-func WithHealthcheckURLOption(url string) Option {
-	return healthcheckURLOption(url)
+func (c *ApiClient) WithOptions(opts ...Option) *ApiClient {
+	client := c.clone()
+
+	for _, o := range opts {
+		o.apply(client)
+	}
+
+	return client
 }
 
 // WithErrorLogOption implements Option
@@ -59,20 +72,13 @@ func WithInfoLogOption(infoLog *log.Logger) Option {
 	return infoLogOption{infoLog}
 }
 
-func New(opts ...Option) (*ApiClient, error) {
-	client := &ApiClient{
-		httpClient: &http.Client{},
-	}
-
-	for _, o := range opts {
-		o.apply(client)
-	}
-
-	return client, nil
+func (c *ApiClient) clone() *ApiClient {
+	clone := &c
+	return *clone
 }
 
-func (c ApiClient) doHealthcheck() (bool, error) {
-	result, err := c.httpClient.Get(c.healthcheckURL)
+func (c *ApiClient) doHealthcheck() (bool, error) {
+	result, err := c.Get(c.healthcheckURL)
 	if err != nil {
 		return false, err
 	}
@@ -92,13 +98,4 @@ func CallHealthcheck(client *ApiClient) {
 	}
 
 	client.infoLog.Printf("%s is healthy.", client.healthcheckURL)
-}
-
-func (c ApiClient) GetHealthcheckURL() string {
-	return c.healthcheckURL
-}
-
-func (c ApiClient) String() string {
-	return fmt.Sprintf("ApiClient{healthcheckURL: %s}",
-		c.healthcheckURL)
 }

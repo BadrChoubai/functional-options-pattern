@@ -1,26 +1,35 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 )
 
+type application struct {
+	errorLog *log.Logger
+	infoLog  *log.Logger
+}
+
 func main() {
-	infoLog := log.New(os.Stdout, "INFO ", log.LstdFlags)
-	errorLog := log.New(os.Stdout, "ERROR ", log.LstdFlags)
-
-	UberAPIClient, err := New(
-		WithHealthcheckURLOption("https://api.uber.com/health"),
-		WithErrorLogOption(errorLog),
-		WithInfoLogOption(infoLog),
-	)
-
-	if err != nil {
-		fmt.Print("failed to create client: baseClient")
+	app := &application{
+		errorLog: log.New(os.Stderr, "ERROR:\t", log.LstdFlags),
+		infoLog:  log.New(os.Stdout, "INFO:\t", log.LstdFlags),
 	}
 
-	fmt.Println(UberAPIClient.String())
+	// This example code uses the Uber API:
+	// https://developer.uber.com/docs/riders/ride-requests/tutorials/api/introduction
+	uber := Service{
+		baseURL:        os.Getenv("UBER_API_URL"),
+		clientId:       os.Getenv("UBER_API_CLIENT_ID"),
+		clientSecret:   os.Getenv("UBER_API_CLIENT_SECRET"),
+		healthcheckURL: os.Getenv("UBER_API_HEALTHCHECK_URL"),
+	}
 
-	CallHealthcheck(UberAPIClient)
+	UberClient := New(
+		&uber,
+		WithErrorLogOption(app.errorLog),
+		WithInfoLogOption(app.infoLog),
+	)
+
+	CallHealthcheck(UberClient)
 }
